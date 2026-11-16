@@ -23,7 +23,7 @@ export function createDemoApi(): FocusApi {
   ];
   const entries: TimeEntry[] = [];
   const activity: Activity[] = [];
-  let settings: Settings = { currency: 'USD', monitorEnabled: true, idleMinutes: 3, browserTabs: true, claudeSessions: true, dayStartHour: 8, onboarded: true };
+  let settings: Settings = { currency: 'USD', monitorEnabled: true, idleMinutes: 3, browserTabs: true, claudeSessions: true, codexSessions: true, dayStartHour: 8, onboarded: true };
 
   // What each project's work looks like: tasks, the apps (and windows) they happen in, and Claude Code sessions.
   type Win = [app: string, detail: string, context: string, url: string];
@@ -153,7 +153,10 @@ export function createDemoApi(): FocusApi {
       fill(start, end, task.apps);
       if (task.claude) {
         const cs = start + Math.floor(rnd() * 15) * M;
-        push({ kind: 'claude', app: 'Claude Code', bundleId: 'claude-desktop', detail: task.claude[0], context: task.claude[1], url: '', start: cs, end: Math.min(cs + (25 + Math.floor(rnd() * 40)) * M, end) });
+        const ce = Math.min(cs + (25 + Math.floor(rnd() * 40)) * M, end);
+        // Some of the agent work happens in Codex (picked from the start time, so the rest of the demo stays the same).
+        const codex = Math.floor(cs / M) % 3 === 0;
+        push({ kind: codex ? 'codex' : 'claude', app: codex ? 'Codex' : 'Claude Code', bundleId: codex ? '' : 'claude-desktop', detail: task.claude[0], context: task.claude[1], url: '', start: cs, end: ce });
       }
       if (running) break;
       const gap = isToday ? (step === 1 ? 15 : 0) : pick([0, 0, 15, 15, 30]);

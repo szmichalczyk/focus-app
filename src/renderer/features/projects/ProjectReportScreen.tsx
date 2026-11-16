@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { EntryTree } from '@/renderer/features/reports/EntryTree';
 import { EntryEditor, type Draft } from '@/renderer/features/calendar/EntryEditor';
 import { usePresence } from '@/renderer/lib/usePresence';
-import type { Activity, TimeEntry } from '@/shared/types';
+import { isAgent, isAgentApp, type Activity, TimeEntry } from '@/shared/types';
 import { firstStart, fitPeriod, PeriodNav, periodTitle, usePeriod } from '@/renderer/components/PeriodNav';
 import { ShareRow, StackedBars, type Bucket } from '@/renderer/components/charts';
 import { Segmented } from '@/renderer/components/Segmented';
@@ -17,9 +17,8 @@ import { HOUR, overlap, startOfDay } from '@/renderer/lib/time';
 import { ProjectDialog } from './ProjectsScreen';
 import { Icon } from '@/renderer/components/Icon';
 
-const CLAUDE = 'Claude Code';
 const EVER = { from: 0, to: 8_640_000_000_000 };
-const appOf = (a: Activity) => (a.kind === 'claude' ? CLAUDE : a.app);
+const appOf = (a: Activity) => a.app;
 
 /** Merges the project's entries into disjoint intervals, clipped to [from, to). */
 function intervals(entries: TimeEntry[], from: number, to: number, now: number) {
@@ -110,8 +109,8 @@ export function ProjectReportScreen({ projectId, onBack }: { projectId: string; 
 
   const details = new Map<string, { label: string; sub: string; ms: number; color: string }>();
   for (const { a, start, end } of during.clipped) {
-    if (selected ? appOf(a) !== selected : a.kind === 'claude') continue;
-    const isClaude = a.kind === 'claude';
+    if (selected ? appOf(a) !== selected : isAgent(a)) continue;
+    const isClaude = isAgent(a);
     const label = isClaude ? (claudeBy === 'project' ? a.context || 'No project' : a.detail || 'Untitled session') : a.detail || (selected ? 'No window title' : a.app);
     const sub = isClaude ? (claudeBy === 'project' ? '' : a.context) : selected ? a.context : a.detail ? a.app : '';
     const k = `${label}\u0000${sub}`;
@@ -233,7 +232,7 @@ export function ProjectReportScreen({ projectId, onBack }: { projectId: string; 
                     <>
                       <AppIcon name={k} src={icons[k]} />
                       {k}
-                      {k === CLAUDE && <small className="fo-share-note">alongside other apps</small>}
+                      {isAgentApp(k) && <small className="fo-share-note">alongside other apps</small>}
                     </>
                   }
                   value={v}
@@ -249,9 +248,9 @@ export function ProjectReportScreen({ projectId, onBack }: { projectId: string; 
           <section className="lo-card fo-card">
             <div className="fo-card-head">
               <h2 className="lo-h2">{selected ? `In ${selected}` : 'Files, tabs and windows'}</h2>
-              {selected === CLAUDE && (
+              {isAgentApp(selected) && (
                 <Segmented
-                  label="Group Claude Code by"
+                  label="Group sessions by"
                   value={claudeBy}
                   onChange={setClaudeBy}
                   options={[

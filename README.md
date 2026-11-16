@@ -2,11 +2,11 @@
 
 **A calm, local time tracker for macOS that also shows you what you actually did.**
 
-Focus puts two streams side by side: the time you *log* (projects, entries, billable hours) and the time you *spent*: which apps, windows, browser tabs and Claude Code sessions were in front of you. Drag a block of real activity onto the calendar and it becomes an entry. No account, no cloud, no sync. Everything lives in one SQLite file on your Mac.
+Focus puts two streams side by side: the time you *log* (projects, entries, billable hours) and the time you *spent*: which apps, windows, browser tabs, and Claude Code and Codex sessions were in front of you. Drag a block of real activity onto the calendar and it becomes an entry. No account, no cloud, no sync. Everything lives in one SQLite file on your Mac.
 
 ![Focus: the week calendar with time entries and the activity strip next to each day](docs/screenshots/timer.jpg)
 
-**[Download for Mac (Apple Silicon)](../../releases/latest)**
+**[Download for Mac (Apple Silicon)](../../releases/latest)** · [What's new](CHANGELOG.md)
 
 ## Features
 
@@ -20,7 +20,7 @@ Focus puts two streams side by side: the time you *log* (projects, entries, bill
 ### Automatic activity
 - Records the frontmost app and window title every few seconds, and the active tab in Chromium browsers and Safari.
 - Pauses on idle, lock and sleep, so breaks don't count as work.
-- Reads your Claude Code sessions and shows them by project and session title.
+- Reads your Claude Code and Codex sessions and shows them by project and session title. Reviewer and subagent threads are left out.
 - Focus never tracks itself.
 
 ![The calendar in Activity view: blocks of real computer use with the apps in each](docs/screenshots/activity-calendar.jpg)

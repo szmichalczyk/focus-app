@@ -4,6 +4,7 @@ import { initDb, settings } from './main/db';
 import { broadcast, registerHandlers } from './main/ipc';
 import { startMonitor, stopMonitor } from './main/monitor';
 import { startClaudeWatcher, stopClaudeWatcher } from './main/claudeSessions';
+import { startCodexWatcher, stopCodexWatcher } from './main/codexSessions';
 import { createTray, destroyTray, refreshTray } from './main/tray';
 
 /** `npm run demo`: sample data in the renderer and a fixed 1440×1100 window, for screenshots. The real database is untouched. */
@@ -59,11 +60,13 @@ app.on('ready', () => {
   createTray();
   if (settings.get().monitorEnabled) startMonitor(() => broadcast('activity'));
   startClaudeWatcher(() => broadcast('activity'));
+  startCodexWatcher(() => broadcast('activity'));
 });
 
 app.on('will-quit', () => {
   stopMonitor();
   stopClaudeWatcher();
+  stopCodexWatcher();
   destroyTray();
 });
 

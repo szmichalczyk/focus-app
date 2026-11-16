@@ -75,6 +75,12 @@ export function SettingsScreen() {
             checked={s.claudeSessions}
             onChange={(v) => save.mutate({ claudeSessions: v })}
           />
+          <Toggle
+            label="Codex sessions"
+            hint="Reads session logs in ~/.codex/sessions: the project, the thread name (or the start of your first prompt) and when you worked. Reviewer and subagent threads are skipped. Nothing else from the conversation is kept."
+            checked={s.codexSessions}
+            onChange={(v) => save.mutate({ codexSessions: v })}
+          />
           <div className="fo-setting">
             <span className="fo-setting-text">
               <span className="lo-title">Pause when idle</span>
@@ -133,7 +139,7 @@ export function SettingsScreen() {
               <span className="lo-title">Delete activity history</span>
               <span className="lo-meta">
                 {confirmClear
-                  ? 'This removes every recorded app, window and Claude Code session. Time entries and projects stay. It cannot be undone.'
+                  ? 'This removes every recorded app, window, Claude Code and Codex session. Time entries and projects stay. It cannot be undone.'
                   : 'Removes recorded activity. Time entries and projects are kept.'}
               </span>
             </span>

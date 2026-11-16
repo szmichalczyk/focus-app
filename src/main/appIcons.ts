@@ -11,6 +11,7 @@ const cache = new Map<string, string | null>();
 /** Names that are not a running app's process name. */
 const ALIASES: Record<string, string> = {
   'Claude Code': 'com.anthropic.claudefordesktop',
+  Codex: 'com.openai.codex',
 };
 /** Apps launched from source all carry Electron's generic icon; a letter badge says more. */
 const GENERIC = new Set(['com.github.Electron']);

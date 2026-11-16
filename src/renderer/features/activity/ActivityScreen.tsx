@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Activity } from '@/shared/types';
+import { isAgent, isAgentApp, type Activity } from '@/shared/types';
 import { firstStart, fitPeriod, PeriodNav, usePeriod } from '@/renderer/components/PeriodNav';
 import { Heatmap, ShareRow, Spark, StackedBars, type Bucket } from '@/renderer/components/charts';
 import { Segmented } from '@/renderer/components/Segmented';
@@ -10,14 +10,13 @@ import { duration, hm } from '@/renderer/lib/format';
 import { HOUR, overlap } from '@/renderer/lib/time';
 import { unionMs } from '@/renderer/lib/stats';
 
-const CLAUDE = 'Claude Code';
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 /** Clipped length of one activity row inside [from, to). */
 const len = (a: Activity, from: number, to: number) => overlap(a.start, a.end, from, to);
 /** Under a minute reads "<1m", not "0m". */
 const short = (ms: number) => (ms < 60_000 ? '<1m' : duration(ms));
-const appOf = (a: Activity) => (a.kind === 'claude' ? CLAUDE : a.app);
+const appOf = (a: Activity) => a.app;
 
 /** Adds an interval to a quarter × hour grid (one day), splitting it at quarter-hour boundaries. */
 function addToQuarters(grid: number[][], start: number, end: number) {
@@ -87,13 +86,13 @@ export function ActivityScreen() {
   const heatValues = isDay ? quarters : grid;
 
   // Bars: top apps stacked, the rest folded into "Other".
-  const top = model.ranked.filter(([k]) => k !== CLAUDE).slice(0, 6).map(([k]) => k);
+  const top = model.ranked.filter(([k]) => !isAgentApp(k)).slice(0, 6).map(([k]) => k);
   const buckets: Bucket[] = period.buckets.map((b, i) => {
     if (selected) {
       return { key: String(b.from), label: b.label, title: b.title, segs: [{ key: selected, label: selected, color: appColor(selected), value: model.apps.get(selected)!.perBucket[i] }] };
     }
     const segs = top.map((k) => ({ key: k, label: k, color: appColor(k), value: model.apps.get(k)!.perBucket[i] }));
-    const rest = model.ranked.filter(([k]) => k !== CLAUDE && !top.includes(k)).reduce((s, [, v]) => s + v.perBucket[i], 0);
+    const rest = model.ranked.filter(([k]) => !isAgentApp(k) && !top.includes(k)).reduce((s, [, v]) => s + v.perBucket[i], 0);
     if (rest > 0) segs.push({ key: 'other', label: 'Other apps', color: '#c5ccd8', value: rest });
     return { key: String(b.from), label: b.label, title: b.title, segs };
   });
@@ -101,7 +100,7 @@ export function ActivityScreen() {
   // Where the time went: details inside the selected app (or across all apps).
   const details = new Map<string, { label: string; sub: string; ms: number; color: string }>();
   for (const a of scoped) {
-    const isClaude = a.kind === 'claude';
+    const isClaude = isAgent(a);
     const label = isClaude ? (claudeBy === 'project' ? a.context || 'No project' : a.detail || 'Untitled session') : a.detail || (selected ? 'No window title' : a.app);
     const sub = isClaude ? (claudeBy === 'project' ? '' : a.context) : selected ? a.context : a.detail ? a.app : '';
     const k = `${label}\u0000${sub}`;
@@ -150,7 +149,7 @@ export function ActivityScreen() {
         {empty ? (
           <div className="lo-card fo-empty">
             <h2 className="lo-h2">No activity recorded {period.kind === 'day' ? 'on this day' : 'in this period'}</h2>
-            <p className="lo-sub">Focus records the app in front, its window or tab, and your Claude Code sessions while the monitor is on.</p>
+            <p className="lo-sub">Focus records the app in front, its window or tab, and your Claude Code and Codex sessions while the monitor is on.</p>
           </div>
         ) : (
           <>
@@ -187,7 +186,7 @@ export function ActivityScreen() {
                         <>
                           <AppIcon name={k} src={icons[k]} />
                           {k}
-                          {k === CLAUDE && <small className="fo-share-note">alongside other apps</small>}
+                          {isAgentApp(k) && <small className="fo-share-note">alongside other apps</small>}
                         </>
                       }
                       value={v.ms}
@@ -204,9 +203,9 @@ export function ActivityScreen() {
               <section className="lo-card fo-card">
                 <div className="fo-card-head">
                   <h2 className="lo-h2">Where the time went</h2>
-                  {selected === CLAUDE && (
+                  {isAgentApp(selected) && (
                     <Segmented
-                      label="Group Claude Code by"
+                      label="Group sessions by"
                       value={claudeBy}
                       onChange={setClaudeBy}
                       options={[

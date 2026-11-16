@@ -8,7 +8,7 @@ import { LoButton } from '@/renderer/components/LoButton';
 const DRAG = { WebkitAppRegion: 'drag' } as CSSProperties;
 const NO_DRAG = { WebkitAppRegion: 'no-drag' } as CSSProperties;
 
-type Source = { key: 'monitorEnabled' | 'browserTabs' | 'claudeSessions'; icon: IconName; title: string; hint: string };
+type Source = { key: 'monitorEnabled' | 'browserTabs' | 'claudeSessions' | 'codexSessions'; icon: IconName; title: string; hint: string };
 
 const SOURCES: Source[] = [
   {
@@ -29,6 +29,12 @@ const SOURCES: Source[] = [
     title: 'Claude Code sessions',
     hint: 'Which project and session you worked in, and when. Never the conversation itself.',
   },
+  {
+    key: 'codexSessions',
+    icon: 'terminal',
+    title: 'Codex sessions',
+    hint: 'The same for Codex: the project, the thread name and when you worked. Never the conversation itself.',
+  },
 ];
 
 /**
@@ -43,6 +49,7 @@ export function Welcome({ settings }: { settings: Settings }) {
     monitorEnabled: settings.monitorEnabled,
     browserTabs: settings.browserTabs,
     claudeSessions: settings.claudeSessions,
+    codexSessions: settings.codexSessions,
   });
   const [asked, setAsked] = useState(false);
   const allowed = !!status?.accessibility;

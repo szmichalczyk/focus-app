@@ -26,7 +26,7 @@ export function earningsByCurrency(entries: TimeEntry[], byId: Map<string, Proje
 }
 
 /**
- * Activity rows can overlap (an app run and a Claude Code session at the same time). "Active time" counts wall-clock
+ * Activity rows can overlap (an app run and an agent session at the same time). "Active time" counts wall-clock
  * once: the union of the intervals, clipped to [from, to).
  */
 export function unionMs(items: { start: number; end: number }[], from: number, to: number) {
@@ -46,7 +46,7 @@ export function unionMs(items: { start: number; end: number }[], from: number, t
   return total;
 }
 
-/** Window-sampled app activity only; Claude Code sessions run in parallel to whatever app is in front. */
+/** Window-sampled app activity only; agent sessions run in parallel to whatever app is in front. */
 export const appRuns = (a: Activity[]) => a.filter((x) => x.kind === 'app');
 
 export function groupSum<T>(items: T[], key: (t: T) => string, ms: (t: T) => number) {

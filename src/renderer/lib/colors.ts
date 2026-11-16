@@ -21,6 +21,7 @@ export const NO_PROJECT = '#8a93a3';
 const KNOWN: Record<string, string> = {
   'Claude Code': '#c96442',
   Claude: '#c96442',
+  Codex: '#3f6f8f',
   Figma: '#a259ff',
   'Google Chrome': '#4c84e8',
   Arc: '#e0557a',

@@ -312,6 +312,7 @@ const DEFAULTS = (): Settings => ({
   idleMinutes: 3,
   browserTabs: true,
   claudeSessions: true,
+  codexSessions: true,
   dayStartHour: 8,
   onboarded: false,
 });

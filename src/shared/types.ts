@@ -31,18 +31,26 @@ export interface TimeEntry {
 export type EntryInput = Omit<TimeEntry, 'id'>;
 export type EntryPatch = Partial<EntryInput>;
 
-/** `app`: the frontmost window, sampled. `claude`: a Claude Code session, read from ~/.claude/projects. */
-export type ActivityKind = 'app' | 'claude';
+/**
+ * `app`: the frontmost window, sampled. `claude`: a Claude Code session, read from ~/.claude/projects.
+ * `codex`: a Codex session, read from ~/.codex/sessions.
+ */
+export type ActivityKind = 'app' | 'claude' | 'codex';
+
+/** Coding-agent sessions run alongside whatever app is in front; their `app` is the agent's name. */
+export const AGENT_APPS = { claude: 'Claude Code', codex: 'Codex' } as const;
+export const isAgent = (a: { kind: ActivityKind }) => a.kind !== 'app';
+export const isAgentApp = (name: string | null | undefined) => name === AGENT_APPS.claude || name === AGENT_APPS.codex;
 
 export interface Activity {
   id: number;
   kind: ActivityKind;
-  /** App name ("Figma", "Google Chrome") or "Claude Code". */
+  /** App name ("Figma", "Google Chrome"), or the agent ("Claude Code", "Codex"). */
   app: string;
   bundleId: string;
   /** What inside the app: window title / file / tab title / session title. */
   detail: string;
-  /** Secondary context: web host for browsers, project folder for Claude Code. */
+  /** Secondary context: web host for browsers, project folder for agent sessions. */
   context: string;
   url: string;
   start: number;
@@ -56,6 +64,7 @@ export interface Settings {
   idleMinutes: number;
   browserTabs: boolean;
   claudeSessions: boolean;
+  codexSessions: boolean;
   /** Hour the week view scrolls to when it opens. */
   dayStartHour: number;
   /** Set when the first-run welcome is finished. Nothing is recorded before that. */

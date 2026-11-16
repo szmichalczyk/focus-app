@@ -1,4 +1,4 @@
-import type { Activity, TimeEntry } from '@/shared/types';
+import { isAgent, isAgentApp, type Activity, type TimeEntry } from '@/shared/types';
 import { DAY, MIN, overlap } from '@/renderer/lib/time';
 
 export const HOUR_PX = 52;
@@ -65,7 +65,7 @@ export function layoutDay(entries: TimeEntry[], day: number, now: number): Entry
 export interface SessionApp {
   name: string;
   ms: number;
-  /** Windows, files, tabs or Claude Code sessions inside this app, longest first. */
+  /** Windows, files, tabs or agent sessions inside this app, longest first. */
   details: { label: string; sub: string; ms: number }[];
 }
 
@@ -79,11 +79,10 @@ export interface ActivitySession {
   apps: SessionApp[];
 }
 
-export const CLAUDE_APP = 'Claude Code';
-const appName = (a: Activity) => (a.kind === 'claude' ? CLAUDE_APP : a.app);
+const appName = (a: Activity) => a.app;
 
 /**
- * Merges all activity of a day (apps and Claude Code sessions) into one stream of sessions: a new session starts only
+ * Merges all activity of a day (apps and agent sessions) into one stream of sessions: a new session starts only
  * after a break longer than `gapMs`. Sessions shorter than `minMs` of activity are dropped as noise.
  */
 export function activitySessions(items: Activity[], day: number, gapMs = 5 * MIN, minMs = 3 * MIN): ActivitySession[] {
@@ -102,7 +101,7 @@ export function activitySessions(items: Activity[], day: number, gapMs = 5 * MIN
   }
   return groups
     .map((g) => {
-      // Active time is the union of the rows: overlapping app runs and Claude sessions count once.
+      // Active time is the union of the rows: overlapping app runs and agent sessions count once.
       let active = 0;
       let cur: [number, number] | null = null;
       for (const r of g.rows) {
@@ -118,8 +117,8 @@ export function activitySessions(items: Activity[], day: number, gapMs = 5 * MIN
         const name = appName(a);
         const app = apps.get(name) ?? { ms: 0, details: new Map() };
         app.ms += end - start;
-        const label = a.kind === 'claude' ? a.detail || 'Untitled session' : a.detail || '';
-        const sub = a.kind === 'claude' ? a.context : a.app === name ? a.context : a.app;
+        const label = isAgent(a) ? a.detail || 'Untitled session' : a.detail || '';
+        const sub = isAgent(a) ? a.context : a.app === name ? a.context : a.app;
         if (label) {
           const k = `${label}\u0000${sub}`;
           const d = app.details.get(k) ?? { label, sub, ms: 0 };
@@ -143,7 +142,7 @@ export function activitySessions(items: Activity[], day: number, gapMs = 5 * MIN
 
 /** The best one-line description of a session, for logging it as a time entry. */
 export function sessionLabel(s: ActivitySession) {
-  const claude = s.apps.find((a) => a.name === CLAUDE_APP)?.details[0];
-  const top = s.apps.find((a) => a.name !== CLAUDE_APP && a.details[0]);
-  return claude?.sub || top?.details[0]?.label || s.apps[0]?.name || 'Activity';
+  const agent = s.apps.find((a) => isAgentApp(a.name))?.details[0];
+  const top = s.apps.find((a) => !isAgentApp(a.name) && a.details[0]);
+  return agent?.sub || top?.details[0]?.label || s.apps[0]?.name || 'Activity';
 }

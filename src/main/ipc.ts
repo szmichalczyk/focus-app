@@ -4,6 +4,7 @@ import type { EntryInput, EntryPatch, ProjectInput, ProjectPatch, Range, Setting
 import { activity, entries, projects, settings } from './db';
 import { monitorStatus, requestAccessibility, startMonitor, stopMonitor } from './monitor';
 import { claudeLastScan, scanClaude } from './claudeSessions';
+import { scanCodex } from './codexSessions';
 import { appIcons } from './appIcons';
 
 export function broadcast(scope: ChangeScope) {
@@ -75,6 +76,7 @@ export function registerHandlers(onTimerChange: () => void) {
       else stopMonitor();
     }
     if ((!before.claudeSessions || !before.onboarded) && next.claudeSessions && next.onboarded) void scanClaude().then((c) => c && broadcast('activity'));
+    if ((!before.codexSessions || !before.onboarded) && next.codexSessions && next.onboarded) void scanCodex().then((c) => c && broadcast('activity'));
     return next;
   });
 }

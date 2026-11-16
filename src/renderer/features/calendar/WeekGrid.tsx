@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
-import type { Activity, Project, TimeEntry } from '@/shared/types';
+import { isAgentApp, type Activity, type Project, type TimeEntry } from '@/shared/types';
 import { useEntryMutations } from '@/renderer/lib/api';
 import { addDays, DAY, MIN, minutesOfDay, sameDay, startOfDay } from '@/renderer/lib/time';
 import { duration, time } from '@/renderer/lib/format';
@@ -198,7 +198,7 @@ export function WeekGrid({
   const hours = Array.from({ length: 24 }, (_, h) => h);
   const showActivity = mode !== 'time';
   const full = mode === 'activity';
-  const icons = useAppIcons(full ? [...new Set(activity.map((a) => (a.kind === 'claude' ? 'Claude Code' : a.app)))] : []);
+  const icons = useAppIcons(full ? [...new Set(activity.map((a) => a.app))] : []);
 
   return (
     <div className="fo-cal" data-mode={mode}>
@@ -338,8 +338,8 @@ function SessionTile({
 }) {
   const top = minutesOfDay(session.start) * pxPerMin + 1;
   const height = Math.max(6, ((session.end - session.start) / MIN) * pxPerMin - 2);
-  // Claude Code runs alongside whatever app is in front, so it names the tile only when nothing else ran.
-  const lead = session.apps.find((a) => a.name !== 'Claude Code') ?? session.apps[0];
+  // Agent sessions run alongside whatever app is in front, so they name the tile only when nothing else ran.
+  const lead = session.apps.find((a) => !isAgentApp(a.name)) ?? session.apps[0];
   const others = session.apps.filter((a) => a !== lead);
   const color = appColor(lead?.name ?? '');
   const len = duration(session.activeMs);
