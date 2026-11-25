@@ -1353,6 +1353,29 @@ button.fo-share:focus-visible {
   outline: 2px solid var(--lo-focus);
   outline-offset: -2px;
 }
+/* A project folding several sessions: the chevron turns when it opens; its sessions sit indented under it. */
+.fo-share-chev {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-left: -2px;
+  color: var(--lo-faint);
+  transition: transform 160ms var(--lo-ease);
+}
+.fo-share[aria-expanded='true'] .fo-share-chev {
+  transform: rotate(90deg);
+}
+.fo-share[data-nested] {
+  padding-left: 30px;
+  width: calc(100% + 20px);
+}
+.fo-share[data-nested] .fo-share-label {
+  font-size: var(--t-note);
+  color: var(--lo-muted);
+}
+.fo-share[data-nested] .fo-share-track {
+  height: 4px;
+}
 .fo-share-top {
   display: flex;
   align-items: center;

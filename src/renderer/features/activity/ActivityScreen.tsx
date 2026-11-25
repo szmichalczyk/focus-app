@@ -5,6 +5,7 @@ import { Heatmap, ShareRow, Spark, StackedBars, type Bucket } from '@/renderer/c
 import { Segmented } from '@/renderer/components/Segmented';
 import { useActivity, useAppIcons, useMonitorStatus } from '@/renderer/lib/api';
 import { AppIcon } from '@/renderer/components/AppIcon';
+import { Icon } from '@/renderer/components/Icon';
 import { appColor } from '@/renderer/lib/colors';
 import { duration, hm } from '@/renderer/lib/format';
 import { HOUR, overlap } from '@/renderer/lib/time';
@@ -17,6 +18,30 @@ const len = (a: Activity, from: number, to: number) => overlap(a.start, a.end, f
 /** Under a minute reads "<1m", not "0m". */
 const short = (ms: number) => (ms < 60_000 ? '<1m' : duration(ms));
 const appOf = (a: Activity) => a.app;
+
+interface DetailRow {
+  label: string;
+  sub: string;
+  ms: number;
+  color: string;
+  /** A project with several sessions: one row with their total, the sessions inside. */
+  sessions?: DetailRow[];
+}
+
+/** By session, sessions of the same project fold into one row; a project with a single session stays a plain row. */
+function groupSessions(rows: DetailRow[], bySession: boolean): DetailRow[] {
+  const byMs = (x: DetailRow, y: DetailRow) => y.ms - x.ms;
+  if (!bySession) return rows.sort(byMs);
+  const projects = new Map<string, DetailRow[]>();
+  for (const r of rows) projects.set(r.sub, [...(projects.get(r.sub) ?? []), r]);
+  return [...projects.entries()]
+    .map(([project, sessions]): DetailRow =>
+      sessions.length === 1
+        ? sessions[0]
+        : { label: project || 'No project', sub: project, ms: sessions.reduce((s, x) => s + x.ms, 0), color: sessions[0].color, sessions: sessions.sort(byMs) },
+    )
+    .sort(byMs);
+}
 
 /** Adds an interval to a quarter × hour grid (one day), splitting it at quarter-hour boundaries. */
 function addToQuarters(grid: number[][], start: number, end: number) {
@@ -54,6 +79,7 @@ export function ActivityScreen() {
   const period = useMemo(() => fitPeriod(ctl.period, firstStart(all)), [ctl.period, all]);
   const [app, setApp] = useState<string | null>(null);
   const [claudeBy, setClaudeBy] = useState<'project' | 'session'>('project');
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
 
   const model = useMemo(() => {
     const { from, to, buckets } = period;
@@ -108,9 +134,18 @@ export function ActivityScreen() {
     cur.ms += len(a, period.from, period.to);
     details.set(k, cur);
   }
-  const detailRows = [...details.values()].filter((d) => d.ms >= 30_000).sort((x, y) => y.ms - x.ms).slice(0, 14);
+  const detailRows = groupSessions(
+    [...details.values()].filter((d) => d.ms >= 30_000),
+    isAgentApp(selected) && claudeBy === 'session',
+  ).slice(0, 14);
   const maxApp = model.ranked[0]?.[1].ms ?? 0;
   const maxDetail = detailRows[0]?.ms ?? 0;
+  const toggleGroup = (k: string) =>
+    setOpenGroups((s) => {
+      const n = new Set(s);
+      if (!n.delete(k)) n.add(k);
+      return n;
+    });
   const sparkCount = Math.min(period.buckets.length, period.kind === 'day' ? 24 : period.kind === 'month' ? 31 : 12);
 
   const empty = !q.isLoading && model.ranked.length === 0;
@@ -217,9 +252,33 @@ export function ActivityScreen() {
                 </div>
                 <div className="fo-share-list">
                   {detailRows.length === 0 && <p className="lo-sub">No window titles recorded for this selection.</p>}
-                  {detailRows.map((d) => (
-                    <ShareRow key={d.label + d.sub} label={d.label} sub={d.sub} value={d.ms} max={maxDetail} color={d.color} right={short(d.ms)} />
-                  ))}
+                  {detailRows.map((d) => {
+                    if (!d.sessions) return <ShareRow key={d.label + d.sub} label={d.label} sub={d.sub} value={d.ms} max={maxDetail} color={d.color} right={short(d.ms)} />;
+                    const open = openGroups.has(d.sub);
+                    return (
+                      <div key={`group\u0000${d.sub}`} className="fo-share-group">
+                        <ShareRow
+                          label={
+                            <>
+                              <Icon name="chevron.right" className="fo-share-chev" aria-hidden="true" />
+                              {d.label}
+                            </>
+                          }
+                          sub={`${d.sessions.length} sessions`}
+                          value={d.ms}
+                          max={maxDetail}
+                          color={d.color}
+                          right={short(d.ms)}
+                          expanded={open}
+                          onClick={() => toggleGroup(d.sub)}
+                        />
+                        {open &&
+                          d.sessions.map((s) => (
+                            <ShareRow key={s.label} label={s.label} value={s.ms} max={maxDetail} color={s.color} right={short(s.ms)} nested />
+                          ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             </div>

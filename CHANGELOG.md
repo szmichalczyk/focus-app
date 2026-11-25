@@ -2,6 +2,11 @@
 
 All notable changes to Focus. Downloads are on the [releases page](../../releases).
 
+## 0.3.6 — 2026-11-25
+
+### Changed
+- **Sessions grouped by project.** In Activity, "Where the time went" by Session folds the sessions of one project into a single row with their total time. Click it to see each session. A project with a single session stays a plain row. Threads of a Claude app project show up together this way.
+
 ## 0.3.5 — 2026-11-25
 
 ### Fixed

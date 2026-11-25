@@ -216,6 +216,8 @@ export function ShareRow({
   right,
   extra,
   selected,
+  expanded,
+  nested,
   onClick,
 }: {
   label: ReactNode;
@@ -226,6 +228,10 @@ export function ShareRow({
   right: ReactNode;
   extra?: ReactNode;
   selected?: boolean;
+  /** Set on a row that opens and closes the rows under it. */
+  expanded?: boolean;
+  /** A row inside an opened group. */
+  nested?: boolean;
   onClick?: () => void;
 }) {
   const body = (
@@ -242,11 +248,19 @@ export function ShareRow({
     </>
   );
   return onClick ? (
-    <button type="button" className="fo-share" data-selected={selected} onClick={onClick} aria-pressed={selected}>
+    <button
+      type="button"
+      className="fo-share"
+      data-selected={selected}
+      onClick={onClick}
+      {...(expanded === undefined ? { 'aria-pressed': selected } : { 'aria-expanded': expanded })}
+    >
       {body}
     </button>
   ) : (
-    <div className="fo-share">{body}</div>
+    <div className="fo-share" data-nested={nested || undefined}>
+      {body}
+    </div>
   );
 }
 
