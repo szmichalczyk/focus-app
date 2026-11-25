@@ -75,6 +75,11 @@ const MIGRATIONS: string[] = [
   `INSERT OR IGNORE INTO settings (key, value)
      SELECT 'onboarded', 'true'
      WHERE EXISTS (SELECT 1 FROM projects) OR EXISTS (SELECT 1 FROM entries) OR EXISTS (SELECT 1 FROM activity);`,
+  // Claude app project threads were titled "</wake>" and filed under the folder, and a tool's own "sessionId"
+  // argument could pass for a session: re-read the Claude Code logs (Codex state is left alone).
+  `DELETE FROM activity WHERE kind = 'claude';
+   DELETE FROM claude_files WHERE path LIKE '%/.claude/projects/%';
+   DELETE FROM claude_sessions WHERE session_id NOT LIKE 'codex:%';`,
 ];
 
 export function initDb() {

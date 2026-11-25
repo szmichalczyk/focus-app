@@ -67,6 +67,48 @@ const cleanTitle = (s: string) =>
     .trim()
     .slice(0, 90);
 
+const decode = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+
+/**
+ * A prompt's title. In Claude app projects every prompt arrives wrapped in
+ * <wake><project><thread><message from="human">…</message></thread></project></wake>: the title is what you wrote.
+ */
+function promptTitle(text: string): string {
+  if (!text.includes('<wake')) return cleanTitle(text);
+  const m = text.match(/<message\b[^>]*\bfrom="human"[^>]*>([\s\S]*?)<\/message>/);
+  if (!m) return '';
+  return cleanTitle(decode(m[1].replace(/<attachment\b[^>]*>(?:\s*<\/attachment>)?/g, ' ').replace(/<[^>]+>/g, ' ')));
+}
+
+/** Claude app projects: the project's own name only appears in the context each of its threads is given. */
+const PROJECT_NAME = /Project: \\"((?:[^"\\]|\\.){1,120}?)\\" \(id: `chan_/;
+
+/** Project names found before the session's first message (the context comes first). */
+const pendingProjects = new Map<string, string>();
+
+function setProject(sid: string, name: string, sessions: Map<string, SessionState>) {
+  const s = sessions.get(sid) ?? loadSession(sid);
+  if (!s) {
+    pendingProjects.set(sid, name);
+    return;
+  }
+  if (s.project === name) return;
+  if (s.activityId) db().prepare("UPDATE activity SET context = ? WHERE id = ? AND kind = 'claude'").run(name, s.activityId);
+  s.project = name;
+  sessions.set(sid, s);
+}
+
+interface LogLine {
+  type?: string;
+  isSidechain?: boolean;
+  sessionId?: string;
+  timestamp?: string;
+  cwd?: string;
+  turnOrigin?: string;
+  entrypoint?: string;
+  message?: { content?: unknown };
+}
+
 /** Applies one log line. Returns true if the activity stream changed. */
 function applyLine(line: string, sessions: Map<string, SessionState>): boolean {
   if (line.length < 20) return false;
@@ -84,21 +126,36 @@ function applyLine(line: string, sessions: Map<string, SessionState>): boolean {
   }
   const head = line.slice(0, 400);
   const isMsg = /"type":"(user|assistant)"/.test(head) || /"type":"(user|assistant)","message"/.test(line);
-  if (!isMsg || line.includes('"isSidechain":true')) return false;
-  const tsRaw = field(line, 'timestamp');
-  const sid = field(line, 'sessionId');
-  if (!tsRaw || !sid) return false;
-  const ts = Date.parse(tsRaw);
-  if (!Number.isFinite(ts)) return false;
-  const cwd = JSON.parse(`"${field(line, 'cwd') || ''}"`) as string;
+  if (!isMsg) {
+    if (line.includes('(id: `chan_')) {
+      const name = line.match(PROJECT_NAME)?.[1];
+      const sid = name && (JSON.parse(line) as LogLine).sessionId;
+      if (name && sid) setProject(sid, cleanTitle(JSON.parse(`"${name}"`) as string), sessions);
+    }
+    return false;
+  }
+  // Parsed whole: tool inputs inside a message can carry their own "sessionId", "cwd" or "timestamp".
+  let j: LogLine;
+  try {
+    j = JSON.parse(line) as LogLine;
+  } catch {
+    return false;
+  }
+  if (j.isSidechain || (j.type !== 'user' && j.type !== 'assistant')) return false;
+  const sid = j.sessionId;
+  const ts = Date.parse(j.timestamp ?? '');
+  if (!sid || !Number.isFinite(ts)) return false;
+  const cwd = j.cwd ?? '';
 
   let s = sessions.get(sid) ?? loadSession(sid);
   if (!s) {
     // Decided by the session's first prompt: SDK-driven sessions mark it turnOrigin "sdk"; yours say "human".
     // Older CLI versions write no marker at all, and those were typed by hand.
-    const origin = field(line, 'turnOrigin');
-    s = { automated: !!origin && origin !== 'human', project: cwd ? path.basename(cwd) : 'Claude Code', title: '', lastTs: 0, activityId: null };
-  } else if (s.automated && field(line, 'turnOrigin') === 'human') {
+    const origin = j.turnOrigin;
+    const project = pendingProjects.get(sid) ?? (cwd ? path.basename(cwd) : 'Claude Code');
+    pendingProjects.delete(sid);
+    s = { automated: !!origin && origin !== 'human', project, title: '', lastTs: 0, activityId: null };
+  } else if (s.automated && j.turnOrigin === 'human') {
     // You took over a session a program started: count it from here on.
     s.automated = false;
   }
@@ -106,14 +163,9 @@ function applyLine(line: string, sessions: Map<string, SessionState>): boolean {
     sessions.set(sid, s);
     return false;
   }
-  if (!s.title && line.length < 60_000 && /"type":"user"/.test(head)) {
-    try {
-      const j = JSON.parse(line) as { message?: { content?: unknown }; origin?: { kind?: string } };
-      const t = cleanTitle(firstText(j.message?.content));
-      if (t && !t.startsWith('[Request interrupted')) s.title = t;
-    } catch {
-      /* partial or odd line: keep going without a title */
-    }
+  if (!s.title && j.type === 'user') {
+    const t = promptTitle(firstText(j.message?.content));
+    if (t && !t.startsWith('[Request interrupted')) s.title = t;
   }
   if (ts <= s.lastTs) {
     sessions.set(sid, s);
@@ -125,7 +177,7 @@ function applyLine(line: string, sessions: Map<string, SessionState>): boolean {
     s.activityId = activity.insert({
       kind: 'claude',
       app: 'Claude Code',
-      bundleId: field(line, 'entrypoint'),
+      bundleId: j.entrypoint ?? '',
       detail: s.title,
       context: s.project,
       url: '',

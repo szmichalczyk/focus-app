@@ -2,6 +2,13 @@
 
 All notable changes to Focus. Downloads are on the [releases page](../../releases).
 
+## 0.3.5 — 2026-11-25
+
+### Fixed
+- **Claude app projects.** Threads of a project in the Claude app are now filed under the project's name instead of its folder, and titled with what you wrote instead of "</wake>".
+- A tool call that passed its own `sessionId` could show up as an extra, untitled Claude Code session.
+- Claude Code sessions from the last 90 days are read again once, so existing runs get the right names.
+
 ## 0.3.4 — 2026-11-16
 
 ### Added
