@@ -2,6 +2,11 @@
 
 All notable changes to Focus. Downloads are on the [releases page](../../releases).
 
+## 0.3.7 — 2026-11-25
+
+### Changed
+- Grouped sessions open and close with motion: the list slides open, the sessions fade in and the chevron turns. With Reduce Motion on, they open instantly.
+
 ## 0.3.6 — 2026-11-25
 
 ### Changed

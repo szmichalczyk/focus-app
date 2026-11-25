@@ -272,10 +272,14 @@ export function ActivityScreen() {
                           expanded={open}
                           onClick={() => toggleGroup(d.sub)}
                         />
-                        {open &&
-                          d.sessions.map((s) => (
-                            <ShareRow key={s.label} label={s.label} value={s.ms} max={maxDetail} color={s.color} right={short(s.ms)} nested />
-                          ))}
+                        {/* Always rendered, so opening and closing can animate the height. */}
+                        <div className="fo-share-sessions" data-open={open} aria-hidden={!open}>
+                          <div>
+                            {d.sessions.map((s) => (
+                              <ShareRow key={s.label} label={s.label} value={s.ms} max={maxDetail} color={s.color} right={short(s.ms)} nested />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     );
                   })}

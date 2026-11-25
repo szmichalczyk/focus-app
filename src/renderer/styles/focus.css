@@ -1365,6 +1365,41 @@ button.fo-share:focus-visible {
 .fo-share[aria-expanded='true'] .fo-share-chev {
   transform: rotate(90deg);
 }
+/* Height animates from 0 to the content's own size (grid rows 0fr → 1fr); the sessions fade and slide in with it. */
+.fo-share-sessions {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms var(--lo-ease);
+}
+.fo-share-sessions[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+.fo-share-sessions > div {
+  min-height: 0;
+  overflow: hidden;
+  /* Room for the rows' negative side margins, so their hover background isn't clipped. */
+  margin: 0 -12px;
+  padding: 0 12px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 160ms var(--lo-ease),
+    transform 240ms var(--lo-ease);
+}
+.fo-share-sessions[data-open='true'] > div {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 200ms var(--lo-ease) 40ms,
+    transform 240ms var(--lo-ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fo-share-sessions,
+  .fo-share-sessions > div,
+  .fo-share-chev {
+    transition: none;
+  }
+}
 .fo-share[data-nested] {
   padding-left: 30px;
   width: calc(100% + 20px);
